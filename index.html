@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bauhaus To-Do</title>
+    
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-square"></div>
+                BAUHAUS TO-DO
+            </div>
+            <nav class="nav">
+                <div class="date-nav">
+                    <button onclick="app.changeDate(-1)">←</button>
+                    <div class="current-date" id="currentDate">Sunday, November 30, 2025</div>
+                    <button onclick="app.changeDate(1)">→</button>
+                </div>
+                <div class="view-buttons">
+                    <button class="view-btn active" onclick="app.switchView('day')">DAY</button>
+                    <button class="view-btn" onclick="app.switchView('week')">WEEK</button>
+                    <button class="view-btn" onclick="app.switchView('month')">MONTH</button>
+                </div>
+                <div class="data-source-indicator" id="dataSourceIndicator">🆕 Loading...</div>
+                <button class="save-json-btn" id="saveJsonBtn" onclick="app.saveToJSON()" style="display: none;">
+                    💾 Save JSON
+                </button>
+                <button class="undo-btn" id="undoBtn" onclick="app.undo()" disabled>↶ Undo</button>
+                <button class="undo-btn" onclick="app.changeSaveLocation()" title="Choose where to save JSON files">
+                    📁 Save Location
+                </button>
+            </nav>
+        </header>
+
+        <!-- DAY VIEW -->
+        <div class="day-view" id="dayView">
+            <div class="section home minimized" data-section="home" draggable="true" ondragstart="app.handleSectionDragStart(event, 'home')" ondragover="app.handleSectionDragOver(event)" ondragend="app.handleSectionDragEnd(event)">
+                <div class="section-header" onclick="app.toggleSectionByHeader(event, this)">
+                    <div class="flex-row-gap-12">
+                        <span class="section-drag-handle" onclick="event.stopPropagation();">⋮⋮</span>
+                        <h2 class="section-title">HOME</h2>
+                    </div>
+                    <div class="flex-row-gap-16">
+                        <div class="section-stats" id="homeStats">0 of 0 completed</div>
+                        <button class="minimize-btn" onclick="event.stopPropagation(); app.toggleSection(this)">+</button>
+                    </div>
+                </div>
+                
+                <div class="task-input-container">
+                    <input type="text" class="task-input" id="homeInput" placeholder="Loading..." onkeypress="app.handleInputKeypress(event, 'home')">
+                </div>
+
+                <div class="tasks-list" id="homeTasks"></div>
+            </div>
+
+            <div class="section work minimized" data-section="work" draggable="true" ondragstart="app.handleSectionDragStart(event, 'work')" ondragover="app.handleSectionDragOver(event)" ondragend="app.handleSectionDragEnd(event)">
+                <div class="section-header" onclick="app.toggleSectionByHeader(event, this)">
+                    <div class="flex-row-gap-12">
+                        <span class="section-drag-handle" onclick="event.stopPropagation();">⋮⋮</span>
+                        <h2 class="section-title">WORK</h2>
+                    </div>
+                    <div class="flex-row-gap-16">
+                        <div class="section-stats" id="workStats">0 of 0 completed</div>
+                        <button class="minimize-btn" onclick="event.stopPropagation(); app.toggleSection(this)">+</button>
+                    </div>
+                </div>
+                
+                <div class="task-input-container">
+                    <input type="text" class="task-input" id="workInput" placeholder="Loading..." onkeypress="app.handleInputKeypress(event, 'work')">
+                </div>
+
+                <div class="work-tabs" id="workTabs">
+                    <!-- Tabs will be rendered dynamically -->
+                </div>
+
+                <div class="tasks-list" id="workTasks"></div>
+            </div>
+
+            <div class="section team minimized" data-section="team" draggable="true" ondragstart="app.handleSectionDragStart(event, 'team')" ondragover="app.handleSectionDragOver(event)" ondragend="app.handleSectionDragEnd(event)">
+                <div class="section-header" onclick="app.toggleSectionByHeader(event, this)">
+                    <div class="flex-row-gap-12">
+                        <span class="section-drag-handle" onclick="event.stopPropagation();">⋮⋮</span>
+                        <h2 class="section-title">TEAM MANAGEMENT</h2>
+                    </div>
+                    <div class="flex-row-gap-16">
+                        <div class="section-stats" id="teamStats">0 of 0 completed</div>
+                        <button class="minimize-btn" onclick="event.stopPropagation(); app.toggleSection(this)">+</button>
+                    </div>
+                </div>
+                
+                <div class="task-input-container">
+                    <input type="text" class="task-input" id="teamInput" placeholder="Loading..." onkeypress="app.handleInputKeypress(event, 'team')">
+                </div>
+
+                <div class="work-tabs" id="teamTabs">
+                    <!-- Team member tabs will be rendered dynamically -->
+                </div>
+
+                <div class="tasks-list" id="teamTasks"></div>
+            </div>
+
+            <!-- NOTES SECTION -->
+            <div class="section notes minimized" data-section="notes" draggable="true" ondragstart="app.handleSectionDragStart(event, 'notes')" ondragover="app.handleSectionDragOver(event)" ondragend="app.handleSectionDragEnd(event)">
+                <div class="section-header" onclick="app.toggleSectionByHeader(event, this)">
+                    <div class="flex-row-gap-12">
+                        <span class="section-drag-handle" onclick="event.stopPropagation();">⋮⋮</span>
+                        <h2 class="section-title">NOTES</h2>
+                    </div>
+                    <button class="minimize-btn" onclick="event.stopPropagation(); app.toggleSection(this)">+</button>
+                </div>
+                
+                <div class="notes-editor-wrapper">
+                    <div class="rich-editor notes-editor">
+                        <div class="editor-toolbar">
+                            <button class="editor-btn" onclick="app.formatNotesText('bold')" title="Bold"><strong>B</strong></button>
+                            <button class="editor-btn" onclick="app.formatNotesText('italic')" title="Italic"><em>I</em></button>
+                            <button class="editor-btn" onclick="app.formatNotesText('underline')" title="Underline"><u>U</u></button>
+                            <button class="editor-btn" onclick="app.formatNotesText('insertUnorderedList')" title="Bullet List">• List</button>
+                            <button class="editor-btn" onclick="app.formatNotesText('insertOrderedList')" title="Numbered List">1. List</button>
+                            <button class="editor-btn" onclick="app.createNotesLink()" title="Link">🔗</button>
+                            <div class="color-picker-wrapper">
+                                <button class="editor-btn" onclick="app.toggleNotesColorPicker()" title="Text Color">🎨</button>
+                                <div class="color-picker" id="notesColorPicker">
+                                    <div class="color-option" style="background: #e8e8e8;" onmousedown="event.preventDefault(); app.setNotesTextColor('#e8e8e8')"></div>
+                                    <div class="color-option" style="background: #ff4444;" onmousedown="event.preventDefault(); app.setNotesTextColor('#ff4444')"></div>
+                                    <div class="color-option" style="background: #4a9eff;" onmousedown="event.preventDefault(); app.setNotesTextColor('#4a9eff')"></div>
+                                    <div class="color-option" style="background: #ffd23f;" onmousedown="event.preventDefault(); app.setNotesTextColor('#ffd23f')"></div>
+                                    <div class="color-option" style="background: #d63864;" onmousedown="event.preventDefault(); app.setNotesTextColor('#d63864')"></div>
+                                    <div class="color-option" style="background: #00d4aa;" onmousedown="event.preventDefault(); app.setNotesTextColor('#00d4aa')"></div>
+                                    <div class="color-option" style="background: #ff9500;" onmousedown="event.preventDefault(); app.setNotesTextColor('#ff9500')"></div>
+                                    <div class="color-option" style="background: #999;" onmousedown="event.preventDefault(); app.setNotesTextColor('#999')"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="editor-content" 
+                             id="notesEditor" 
+                             contenteditable="true"
+                             data-placeholder="Write your notes for today..."
+                             oninput="app.saveNotes()"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WEEK VIEW -->
+        <div class="week-view" id="weekView">
+            <div class="view-header" id="weekHeader">Week View</div>
+            <div class="week-days" id="weekDays"></div>
+        </div>
+
+        <!-- MONTH VIEW -->
+        <div class="month-view" id="monthView">
+            <div class="view-header" id="monthHeader">Month View</div>
+            <div id="monthContent"></div>
+        </div>
+
+        <!-- RECENTLY DELETED -->
+        <div class="recently-deleted hidden" id="recentlyDeleted">
+            <div class="recently-deleted-header">
+                <div class="recently-deleted-title">🗑️ Recently Deleted (Last 30 Days)</div>
+                <div class="flex-row-gap-12">
+                    <div class="deleted-count" id="deletedCount">0 tasks</div>
+                    <button class="recently-deleted-toggle" id="deletedToggle" onclick="app.toggleRecentlyDeleted()">↑</button>
+                </div>
+            </div>
+            <div class="deleted-tasks collapsed" id="deletedTasks"></div>
+        </div>
+
+        <!-- Export/Import Section -->
+        <div class="data-management-section">
+            <div class="data-management-title">DATA MANAGEMENT</div>
+            <div class="data-management-buttons">
+                <button class="btn btn-primary btn-with-icon" onclick="app.exportToJSON()">
+                    <span>↓</span> Export to JSON
+                </button>
+                <button class="btn btn-primary btn-with-icon" onclick="DOMCache.get('importJSONFile').click()">
+                    <span>↑</span> Import from JSON
+                </button>
+                <input type="file" id="importJSONFile" accept=".json" class="hidden" onchange="app.importFromJSON(event)">
+            </div>
+            <div class="data-management-buttons" style="margin-top: 12px;">
+                <button class="btn btn-secondary btn-with-icon" onclick="app.exportToCSV()">
+                    <span>↓</span> Export to CSV (legacy)
+                </button>
+                <button class="btn btn-secondary btn-with-icon" onclick="DOMCache.get('importFile').click()">
+                    <span>↑</span> Import from CSV (legacy)
+                </button>
+                <input type="file" id="importFile" accept=".csv" class="hidden" onchange="app.importFromCSV(event)">
+            </div>
+            <div class="data-management-note">
+                JSON preserves all formatting and is recommended for backups. CSV is for spreadsheet compatibility.
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div class="modal" id="confirmDialog">
+        <div class="modal-content modal-narrow">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Delete</h3>
+            </div>
+            
+            <p id="confirmMessage" class="confirm-message"></p>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="app.cancelDelete()">Cancel</button>
+                <button class="btn btn-primary" class="delete-confirm-btn" onclick="app.confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Task</h3>
+                <button class="modal-close" onclick="app.closeEditModal()">×</button>
+            </div>
+            
+            <!-- Metadata Section -->
+            <div class="metadata-grid">
+                <div class="metadata-item">
+                    <div class="metadata-label">Section</div>
+                    <div class="metadata-value" id="editSection">HOME</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Created</div>
+                    <div class="metadata-value" id="editCreated">—</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Task Title</label>
+                <input type="text" class="form-input" id="editTitle">
+            </div>
+
+            <div class="form-group" id="teamMemberGroup" class="hidden">
+                <label class="form-label form-label-team">👤 Assign to Team Members (hold Ctrl/Cmd for multiple)</label>
+                <select class="team-member-select team-select-styled" id="teamMemberSelect" multiple size="5">
+                    <!-- Team members will be populated dynamically -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <div class="rich-editor">
+                    <div class="editor-toolbar">
+                        <button class="editor-btn" onclick="app.formatText('bold')" title="Bold"><strong>B</strong></button>
+                        <button class="editor-btn" onclick="app.formatText('italic')" title="Italic"><em>I</em></button>
+                        <button class="editor-btn" onclick="app.createLink()" title="Link">🔗</button>
+                        <div class="color-picker-wrapper">
+                            <button class="editor-btn" onclick="app.toggleColorPicker()" title="Text Color">🎨</button>
+                            <div class="color-picker" id="colorPicker">
+                                <div class="color-option" style="background: #e8e8e8;" onmousedown="event.preventDefault(); app.setTextColor('#e8e8e8')"></div>
+                                <div class="color-option" style="background: #ff4444;" onmousedown="event.preventDefault(); app.setTextColor('#ff4444')"></div>
+                                <div class="color-option" style="background: #4a9eff;" onmousedown="event.preventDefault(); app.setTextColor('#4a9eff')"></div>
+                                <div class="color-option" style="background: #ffd23f;" onmousedown="event.preventDefault(); app.setTextColor('#ffd23f')"></div>
+                                <div class="color-option" style="background: #d63864;" onmousedown="event.preventDefault(); app.setTextColor('#d63864')"></div>
+                                <div class="color-option" style="background: #00d4aa;" onmousedown="event.preventDefault(); app.setTextColor('#00d4aa')"></div>
+                                <div class="color-option" style="background: #ff9500;" onmousedown="event.preventDefault(); app.setTextColor('#ff9500')"></div>
+                                <div class="color-option" style="background: #999;" onmousedown="event.preventDefault(); app.setTextColor('#999')"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="editor-content" 
+                         id="editDescription" 
+                         contenteditable="true"
+                         data-placeholder="Add notes, links, or formatted text..."></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">📅 Move to Date</label>
+                <input type="date" id="editDate" class="form-input">
+                <div class="date-move-hint">Change this to move the task to a different day</div>
+            </div>
+
+            <div class="form-group" id="workCategoryGroup" class="hidden">
+                <label class="form-label">Work Categories</label>
+                <div class="checkbox-wrapper" id="workCategoryCheckboxes">
+                    <!-- Category checkboxes will be rendered here -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tags (hashtags)</label>
+                <div class="tag-input-wrapper" id="tagContainer">
+                    <input type="text" class="tag-input" id="tagInput" placeholder="Add tag and press Enter..." onkeydown="app.handleTagInput(event)">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="app.closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="app.saveEdit()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Settings Modal -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Manage Work Categories</h3>
+                <button class="modal-close" onclick="app.closeCategorySettings()">×</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Categories (drag to reorder)</label>
+                <div class="category-list" id="categoryList">
+                    <!-- Categories will be rendered here -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Add New Category</label>
+                <input type="text" 
+                       class="add-category-input" 
+                       id="newCategoryInput" 
+                       placeholder="Enter category name..." 
+                       onkeypress="app.handleCategoryInputKeypress(event)">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="app.closeCategorySettings()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Member Settings Modal -->
+    <div class="modal" id="teamModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Manage Team Members</h3>
+                <button class="modal-close" onclick="app.closeTeamSettings()">×</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Team Members (drag to reorder)</label>
+                <div class="category-list" id="teamMemberList">
+                    <!-- Team members will be rendered here -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Add New Team Member</label>
+                <input type="text" 
+                       class="add-category-input" 
+                       id="newTeamMemberInput" 
+                       placeholder="Enter team member name..." 
+                       onkeypress="app.handleTeamMemberInputKeypress(event)">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="app.closeTeamSettings()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deadline Picker Modal -->
+    <div class="modal" id="deadlineModal">
+        <div class="modal-content modal-narrow">
+            <div class="modal-header">
+                <h3 class="modal-title modal-title-yellow">🔥 Set Deadline</h3>
+                <button class="modal-close" onclick="app.closeDeadlineModal()">×</button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Select Date</label>
+                <input type="date" id="deadlinePicker" class="form-input date-picker-styled">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="app.clearDeadline()">Clear Deadline</button>
+                <button class="btn btn-primary" onclick="app.saveDeadline()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="app.js" defer></script>
+</body>
+</html>
